@@ -1,0 +1,33 @@
+$Header: /var/cvsroot/gentoo-src/README,v 1.1 2004/06/30 02:40:42 agriffis Exp $
+
+This is the source for app-text/build-docbook-catalog, which is a
+script to regenerate the xml docbook catalog.
+
+To make a release of this script, do the following:
+
+1. Commit your changes and copy the versioned, bzipped script to
+   gentoo's distfiles:
+
+    cvs commit build-docbook-catalog
+    rev=$(awk '/^# .Header:/{print $4;exit}' build-docbook-catalog)
+    echo $rev
+    bzip2 -c build-docbook-catalog \
+        >/usr/portage/distfiles/build-docbook-catalog-${rev}.bz2
+    scp /usr/portage/distfiles/build-docbook-catalog-${rev}.bz2 \
+        gentoo:/space/distfiles-local/
+
+2. Make a new version of the build-docbook-catalog ebuild:
+
+    ego build-docbook-catalog
+    cp $(/bin/ls -t1 *.ebuild | head -n 1) build-docbook-catalog-${rev}.ebuild
+    ekeyword ~all build-docbook-catalog-${rev}.ebuild
+
+3. Do the normal steps to generate a digest, mark the previous version
+   stable, use echangelog to add a ChangeLog entry, etc.
+
+    cvs add build-docbook-catalog-${rev}.ebuild
+    ebuild build-docbook-catalog-${rev}.ebuild digest
+    echangelog
+    repoman commit -m "version bump to ${rev}"
+
+vim:sw=4 expandtab

@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.2 2004/07/22 22:35:18 agriffis Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.3 2008/09/22 13:43:02 flameeyes Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -35,7 +35,9 @@ main() {
 	done
 
 	create_catalogs			# will exit on error
-	populate_xsl
+	for type in xsl xsl-ns xsl-saxon xsl-xalan; do
+	    populate_xsl $type
+	done
 
 	# Clean out old dtds from catalog
 	verb "Cleaning out old DocBook XML versions from ${CATALOG} and ${ROOTCATALOG}"
@@ -251,32 +253,36 @@ populate_entities() {
 populate_xsl() {
 	typeset listed avail f
 
-	# Delete current entries from the catalog
-	clean_catalog "${DOCBOOKDIR}/xsl-stylesheets-[0-9\.]+" $CATALOG
-	clean_catalog "${DOCBOOKDIR}/xsl-stylesheets-[0-9\.]+" $ROOTCATALOG
+	# This is either xsl, xsl-ns, xsl-saxon or xsl-xalan
+	local type=$1
 
-	# Find the available XSL stylesheets.  In theory there should only
-	# be one match since these aren't slotted, but restrict to the
-	# first match anyway...
-	avail=$(find ${DOCBOOKDIR%/*} -name chunk.xsl | head -n 1)
-	if [[ -z ${avail} ]]; then
-		echo "Could not locate chunk.xsl of DocBook XSL stylesheets" >&2
+	# Delete current entries from the catalog (delete legacy versioned entries too)
+	clean_catalog "${DOCBOOKDIR}/${type}-stylesheets(-[0-9\.]+)?" $CATALOG
+	clean_catalog "${DOCBOOKDIR}/${type}-stylesheets(-[0-9\.]+)?" $ROOTCATALOG
+
+	xsldir=/usr/share/sgml/docbook/${type}-stylesheets
+
+	if [[ ! -d ${xsldir} ]]; then
+		echo "DocBook XSL stylesheets (${type}) not found" >&2
 		return 1
 	fi
-	xsldir=${avail%/*/*}
+
 	if [[ ! -e ${xsldir}/html/docbook.xsl || ! -e ${xsldir}/common/l10n.xml ]]; then
-		echo "DocBook XSLT stylesheets are missing files from ${xsldir}" >&2
+		echo "DocBook XSL stylesheets are missing files from ${xsldir}" >&2
 		return 1
 	fi
 
 	# Populate catalog with XSL entries
-	echo "Found DocBook XSL stylesheets in ${xsldir}"
+	echo "Found DocBook XSL stylesheets (${type}) in ${xsldir}"
 	verb "  Populating ${CATALOG} with XSL stylesheets"
+
+	# HACK: This is a totally arbitrary subset, either it should
+	# be reduced to just current or it should be expanded.
 	for version in current 1.39 1.40 1.41 1.42 1.43 1.44 1.45 1.46 1.47 \
-		1.48 1.49 1.50 ${xsldir##*-}
+		1.48 1.49 1.50
 	do
-		xmlcatalog --noout --add "rewriteSystem" "http://docbook.sourceforge.net/release/xsl/${version}" "file://${xsldir}" ${CATALOG}
-		xmlcatalog --noout --add "rewriteURI" "http://docbook.sourceforge.net/release/xsl/${version}" "file://${xsldir}" ${CATALOG}
+		xmlcatalog --noout --add "rewriteSystem" "http://docbook.sourceforge.net/release/${type}/${version}" "file://${xsldir}" ${CATALOG}
+		xmlcatalog --noout --add "rewriteURI" "http://docbook.sourceforge.net/release/${type}/${version}" "file://${xsldir}" ${CATALOG}
 	done
 }
 

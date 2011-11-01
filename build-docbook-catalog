@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.6 2011/03/29 02:11:48 flameeyes Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.7 2011/11/01 21:04:00 vapier Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -57,7 +57,7 @@ main() {
 	exit 0
 }
 
-# 
+#
 # verbose echo -- only echo if called with --verbose
 #
 verb() {
@@ -66,7 +66,7 @@ verb() {
 
 #
 # fill in the DTDS variable based on installed versions
-# 
+#
 set_dtds() {
 	DTDS=$(find ${DOCBOOKDIR} -path '*/xml-dtd-*/docbookx.dtd')
 	SIMPLE_DTDS=$(find ${DOCBOOKDIR} -path '*/xml-simple-dtd-*/sdocbook.dtd')
@@ -134,7 +134,7 @@ clean_catalog() {
 	done
 }
 
-# 
+#
 # populate a specific dtd version into the docbook catalog
 # $1 == /path/to/docbookx.dtd
 #
@@ -181,7 +181,7 @@ populate_dtd() {
 	fi
 }
 
-# 
+#
 # populate a specific simple dtd version into the docbook catalog
 # $1 == /path/to/sdocbook.dtd
 #

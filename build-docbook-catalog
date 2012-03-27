@@ -1,10 +1,10 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.7 2011/11/01 21:04:00 vapier Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.8 2012/03/27 21:23:00 vapier Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
 #
-# Copyright 2004 Gentoo Foundation
+# Copyright 2004-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # written by Aron Griffis
 #
@@ -30,7 +30,7 @@ main() {
 		case "$1" in
 			-v|--verbose) VERBOSE=true ; shift ;;
 			--) shift ; break ;;
-			*) echo "Options parsing failed on $1!" >&2 ; exit 1 ;;
+			*) error "options parsing failed on $1!" ;;
 		esac
 	done
 
@@ -65,6 +65,14 @@ verb() {
 }
 
 #
+# show an error and abort
+#
+error() {
+	printf '%s: %b, aborting\n' "${ZERO}" "$*" 1>&2
+	exit 1
+}
+
+#
 # fill in the DTDS variable based on installed versions
 #
 set_dtds() {
@@ -86,8 +94,7 @@ create_catalogs() {
 		echo "Creating XML Catalog root ${ROOTCATALOG}"
 		/usr/bin/xmlcatalog --noout --create ${ROOTCATALOG}
 		if [[ ! -r ${ROOTCATALOG} ]] ; then
-			echo "Failed creating ${ROOTCATALOG}, aborting" >&2
-			exit 1
+			error "failed creating ${ROOTCATALOG}"
 		fi
 	else
 		verb "Found XML Catalog root ${ROOTCATALOG}"
@@ -100,8 +107,7 @@ create_catalogs() {
 		echo "Creating DocBook XML Catalog ${CATALOG}"
 		/usr/bin/xmlcatalog --noout --create ${CATALOG}
 		if [[ ! -r ${CATALOG} ]] ; then
-			echo "Failed creating ${CATALOG}, aborting" >&2
-			exit 1
+			error "failed creating ${CATALOG}"
 		fi
 	else
 		verb "Found DocBook XML Catalog ${CATALOG}"
@@ -266,8 +272,7 @@ populate_entities() {
 			let j=j+1
 			let i=i+2
 		else
-			echo "${0}: Whoah, shouldn't be here, aborting" >&2
-			exit 1
+			error "${0}: whoah, shouldn't be here"
 		fi
 	done
 }

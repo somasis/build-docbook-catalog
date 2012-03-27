@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.14 2012/03/27 22:50:44 vapier Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.15 2012/03/27 22:54:41 vapier Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -59,8 +59,8 @@ main() {
 
 	# Clean out old dtds from catalog
 	verb "Cleaning out old DocBook XML versions from ${CATALOG} and ${ROOTCATALOG}"
-	clean_catalog "${DOCBOOKDIR}/xml\(-simple\)*-dtd-[^/\"']*/[^/\"']*" ${CATALOG}
-	clean_catalog "${DOCBOOKDIR}/xml\(-simple\)*-dtd-[^/\"']*/[^/\"']*" ${ROOTCATALOG}
+	clean_catalog "${DOCBOOKDIR}/xml\(-simple\)*-dtd-[^/\"']*/[^/\"']*" "${CATALOG}"
+	clean_catalog "${DOCBOOKDIR}/xml\(-simple\)*-dtd-[^/\"']*/[^/\"']*" "${ROOTCATALOG}"
 
 	if set_dtds; then
 		for d in ${DTDS}; do
@@ -97,8 +97,8 @@ set_dtds() {
 	DTDS= SIMPLE_DTS=
 
 	if [[ -d ${DOCBOOKDIR} ]] ; then
-		DTDS=$(find ${DOCBOOKDIR} -path '*/xml-dtd-*/docbookx.dtd')
-		SIMPLE_DTDS=$(find ${DOCBOOKDIR} -path '*/xml-simple-dtd-*/sdocbook.dtd')
+		DTDS=$(find "${DOCBOOKDIR}" -path '*/xml-dtd-*/docbookx.dtd')
+		SIMPLE_DTDS=$(find "${DOCBOOKDIR}" -path '*/xml-simple-dtd-*/sdocbook.dtd')
 	fi
 
 	if [[ -z ${DTDS} ]]; then
@@ -136,7 +136,7 @@ create_catalogs() {
 
 	if [[ ! -r ${ROOTCATALOG} ]] ; then
 		echo "Creating XML Catalog root ${ROOTCATALOG}"
-		xmlcatalog --noout --create ${ROOTCATALOG}
+		xmlcatalog --noout --create "${ROOTCATALOG}"
 		if [[ ! -r ${ROOTCATALOG} ]] ; then
 			error "failed creating ${ROOTCATALOG}"
 		fi
@@ -144,12 +144,12 @@ create_catalogs() {
 		verb "Found XML Catalog root ${ROOTCATALOG}"
 		# clean out existing entries
 		verb "  Cleaning existing ${CATALOG} delegates from ${ROOTCATALOG}"
-		clean_catalog "file://${CATALOG}" ${ROOTCATALOG}
+		clean_catalog "file://${CATALOG}" "${ROOTCATALOG}"
 	fi
 
 	if [[ ! -r ${CATALOG} ]] ; then
 		echo "Creating DocBook XML Catalog ${CATALOG}"
-		xmlcatalog --noout --create ${CATALOG}
+		xmlcatalog --noout --create "${CATALOG}"
 		if [[ ! -r ${CATALOG} ]] ; then
 			error "failed creating ${CATALOG}"
 		fi
@@ -186,7 +186,7 @@ clean_catalog() {
 
 	list=$(egrep --only-matching "${regex}" "${catalog}" | sort -u)
 	for f in ${list}; do
-		xmlcatalog --noout --del "${f}" ${catalog}
+		xmlcatalog --noout --del "${f}" "${catalog}"
 	done
 }
 
@@ -304,7 +304,7 @@ populate_entities() {
 	)
 
 	# here are the entities available; assume no spaces in filenames...
-	avail=($(ls ${isodir} | sort))
+	avail=($(ls "${isodir}" | sort))
 
 	# double-check the lists
 	verb "  Populating ${CATALOG} with ISO DocBook entities"
@@ -324,7 +324,7 @@ populate_entities() {
 			let i=i+2
 		elif [[ ${entities[i]} == ${avail[j]} ]]; then
 			xmlcatalog --noout --add "public" "${entities[i+1]}" \
-				"file://${isodir}/${entities[i]}" ${CATALOG}
+				"file://${isodir}/${entities[i]}" "${CATALOG}"
 			let j=j+1
 			let i=i+2
 		else
@@ -343,8 +343,8 @@ populate_xsl() {
 	local type=$1
 
 	# Delete current entries from the catalog (delete legacy versioned entries too)
-	clean_catalog "${DOCBOOKDIR}/${type}-stylesheets(-[0-9\.]+)?" $CATALOG
-	clean_catalog "${DOCBOOKDIR}/${type}-stylesheets(-[0-9\.]+)?" $ROOTCATALOG
+	clean_catalog "${DOCBOOKDIR}/${type}-stylesheets(-[0-9\.]+)?" "${CATALOG}"
+	clean_catalog "${DOCBOOKDIR}/${type}-stylesheets(-[0-9\.]+)?" "${ROOTCATALOG}"
 
 	local xsldir=/usr/share/sgml/docbook/${type}-stylesheets
 

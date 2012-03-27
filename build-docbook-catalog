@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.13 2012/03/27 22:46:32 vapier Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.14 2012/03/27 22:50:44 vapier Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -110,9 +110,26 @@ set_dtds() {
 }
 
 #
+# multi_xmlcatalog_add <file> <opts array>
+#
+# the opts array is a set of three: what gets passed to --add
+#
+multi_xmlcatalog_add() {
+	local file=$1
+	shift
+
+	while [[ $# -gt 0 ]] ; do
+		xmlcatalog --noout --add "$1" "$2" "file://$3" "${file}"
+		shift 3
+	done
+}
+
+#
 # create the catalogs root and docbook specific
 #
 create_catalogs() {
+	local adds
+
 	if [[ ! -d ${ROOTCONFDIR} ]] ; then
 		mkdir -p "${ROOTCONFDIR}" || error "could not create ${ROOTCONFDIR}"
 	fi
@@ -142,15 +159,21 @@ create_catalogs() {
 
 	# dtd pointers
 	verb "  Populating ${ROOTCATALOG} with DTD delegates to ${CATALOG}"
-	xmlcatalog --noout --add "delegatePublic" "-//OASIS//ENTITIES DocBook" "file://${CATALOG}" ${ROOTCATALOG}
-	xmlcatalog --noout --add "delegatePublic" "-//OASIS//ELEMENTS DocBook" "file://${CATALOG}" ${ROOTCATALOG}
-	xmlcatalog --noout --add "delegatePublic" "-//OASIS//DTD DocBook" "file://${CATALOG}" ${ROOTCATALOG}
-	xmlcatalog --noout --add "delegateSystem" "http://www.oasis-open.org/docbook/" "file://${CATALOG}" ${ROOTCATALOG}
-	xmlcatalog --noout --add "delegateURI" "http://www.oasis-open.org/docbook/" "file://${CATALOG}" ${ROOTCATALOG}
+	adds=(
+		"delegatePublic"  "-//OASIS//ENTITIES DocBook"          "${CATALOG}"
+		"delegatePublic"  "-//OASIS//ELEMENTS DocBook"          "${CATALOG}"
+		"delegatePublic"  "-//OASIS//DTD DocBook"               "${CATALOG}"
+		"delegateSystem"  "http://www.oasis-open.org/docbook/"  "${CATALOG}"
+		"delegateURI"     "http://www.oasis-open.org/docbook/"  "${CATALOG}"
+	)
+	multi_xmlcatalog_add "${ROOTCATALOG}" "${adds[@]}"
 
 	# entities pointer
 	verb "  Populating ${ROOTCATALOG} with ISO entities delegate to ${CATALOG}"
-	xmlcatalog --noout --add "delegatePublic" "ISO 8879:1986" "file://${CATALOG}" ${ROOTCATALOG}
+	adds=(
+		"delegatePublic"  "ISO 8879:1986"  "${CATALOG}"
+	)
+	multi_xmlcatalog_add "${ROOTCATALOG}" "${adds[@]}"
 }
 
 #
@@ -173,7 +196,7 @@ clean_catalog() {
 #
 populate_dtd() {
 	local dtd=$1 docbookdir=${1%/*} dtd_date
-	local v=${docbookdir##*-}
+	local v=${docbookdir##*-} adds
 
 	# sanity check
 	if [[ ${dtd} != */xml-dtd-*/* ]]; then
@@ -184,16 +207,19 @@ populate_dtd() {
 
 	# Populate the docbook catalog with this version
 	verb "  Populating ${CATALOG} based on ${docbookdir}"
-	xmlcatalog --noout --add "public" "-//OASIS//ELEMENTS DocBook XML Information Pool V${v}//EN" "file://${docbookdir}/dbpoolx.mod" ${CATALOG}
-	xmlcatalog --noout --add "public" "-//OASIS//DTD DocBook XML V${v}//EN" "file://${docbookdir}/docbookx.dtd" ${CATALOG}
-	xmlcatalog --noout --add "public" "-//OASIS//ENTITIES DocBook XML Character Entities V${v}//EN" "file://${docbookdir}/dbcentx.mod" ${CATALOG}
-	xmlcatalog --noout --add "public" "-//OASIS//ENTITIES DocBook XML Notations V${v}//EN" "file://${docbookdir}/dbnotnx.mod" ${CATALOG}
-	xmlcatalog --noout --add "public" "-//OASIS//ENTITIES DocBook XML Additional General Entities V${v}//EN" "file://${docbookdir}/dbgenent.mod" ${CATALOG}
-	xmlcatalog --noout --add "public" "-//OASIS//ELEMENTS DocBook XML Document Hierarchy V${v}//EN" "file://${docbookdir}/dbhierx.mod" ${CATALOG}
-	xmlcatalog --noout --add "public" "-//OASIS//DTD XML Exchange Table Model 19990315//EN" "file://${docbookdir}/soextblx.dtd" ${CATALOG}
-	xmlcatalog --noout --add "public" "-//OASIS//DTD DocBook XML CALS Table Model V${v}//EN" "file://${docbookdir}/calstblx.dtd" ${CATALOG}
-	xmlcatalog --noout --add "rewriteSystem" "http://www.oasis-open.org/docbook/xml/${v}" "file://${docbookdir}" ${CATALOG}
-	xmlcatalog --noout --add "rewriteURI" "http://www.oasis-open.org/docbook/xml/${v}" "file://${docbookdir}" ${CATALOG}
+	adds=(
+		"public"         "-//OASIS//ELEMENTS DocBook XML Information Pool V${v}//EN"             "${docbookdir}/dbpoolx.mod"
+		"public"         "-//OASIS//DTD DocBook XML V${v}//EN"                                   "${docbookdir}/docbookx.dtd"
+		"public"         "-//OASIS//ENTITIES DocBook XML Character Entities V${v}//EN"           "${docbookdir}/dbcentx.mod"
+		"public"         "-//OASIS//ENTITIES DocBook XML Notations V${v}//EN"                    "${docbookdir}/dbnotnx.mod"
+		"public"         "-//OASIS//ENTITIES DocBook XML Additional General Entities V${v}//EN"  "${docbookdir}/dbgenent.mod"
+		"public"         "-//OASIS//ELEMENTS DocBook XML Document Hierarchy V${v}//EN"           "${docbookdir}/dbhierx.mod"
+		"public"         "-//OASIS//DTD XML Exchange Table Model 19990315//EN"                   "${docbookdir}/soextblx.dtd"
+		"public"         "-//OASIS//DTD DocBook XML CALS Table Model V${v}//EN"                  "${docbookdir}/calstblx.dtd"
+		"rewriteSystem"  "http://www.oasis-open.org/docbook/xml/${v}"                            "${docbookdir}"
+		"rewriteURI"     "http://www.oasis-open.org/docbook/xml/${v}"                            "${docbookdir}"
+	)
+	multi_xmlcatalog_add "${CATALOG}" "${adds[@]}"
 
 	# grab the RCS date from docbookx.dtd for comparison purposes
 	if [[ ! -f ${docbookdir}/ent/iso-lat1.ent ]]; then
@@ -220,7 +246,7 @@ populate_dtd() {
 #
 populate_simple_dtd() {
 	local dtd=$1 docbookdir=${1%/*}
-	local v=${docbookdir##*-}
+	local v=${docbookdir##*-} adds
 
 	# sanity check
 	if [[ ${dtd} != */xml-simple-dtd-*/* ]]; then
@@ -231,9 +257,12 @@ populate_simple_dtd() {
 
 	# Populate the docbook catalog with this version
 	verb "  Populating ${CATALOG} based on ${docbookdir}"
-	xmlcatalog --noout --add "public" "-//OASIS//DTD Simplified DocBook XML V${v}//EN" "file://${docbookdir}/sdocbook.dtd" ${CATALOG}
-	xmlcatalog --noout --add "rewriteSystem" "http://www.oasis-open.org/docbook/xml/simple/${v}" "file://${docbookdir}" ${CATALOG}
-	xmlcatalog --noout --add "rewriteURI" "http://www.oasis-open.org/docbook/xml/simple/${v}" "file://${docbookdir}" ${CATALOG}
+	adds=(
+		"public"         "-//OASIS//DTD Simplified DocBook XML V${v}//EN"     "${docbookdir}/sdocbook.dtd"
+		"rewriteSystem"  "http://www.oasis-open.org/docbook/xml/simple/${v}"  "${docbookdir}"
+		"rewriteURI"     "http://www.oasis-open.org/docbook/xml/simple/${v}"  "${docbookdir}"
+	)
+	multi_xmlcatalog_add "${CATALOG}" "${adds[@]}"
 }
 
 #
@@ -308,7 +337,7 @@ populate_entities() {
 # populate XSL stylesheets
 #
 populate_xsl() {
-	local f
+	local f adds
 
 	# This is either xsl, xsl-ns, xsl-saxon or xsl-xalan
 	local type=$1
@@ -333,12 +362,18 @@ populate_xsl() {
 	echo "Found DocBook XSL stylesheets (${type}) in ${xsldir}"
 
 	verb "  Populating ${ROOTCATALOG} with XSL delegations"
-	xmlcatalog --noout --add "delegateSystem" "http://docbook.sourceforge.net/release/${type}/" "file://${CATALOG}" ${ROOTCATALOG}
-	xmlcatalog --noout --add "delegateURI" "http://docbook.sourceforge.net/release/${type}/" "file://${CATALOG}" ${ROOTCATALOG}
+	adds=(
+		"delegateSystem"  "http://docbook.sourceforge.net/release/${type}/"  "${CATALOG}"
+		"delegateURI"     "http://docbook.sourceforge.net/release/${type}/"  "${CATALOG}"
+	)
+	multi_xmlcatalog_add "${ROOTCATALOG}" "${adds[@]}"
 
 	verb "  Populating ${CATALOG} with XSL stylesheets"
-	xmlcatalog --noout --add "rewriteSystem" "http://docbook.sourceforge.net/release/${type}/current" "file://${xsldir}" ${CATALOG}
-	xmlcatalog --noout --add "rewriteURI" "http://docbook.sourceforge.net/release/${type}/current" "file://${xsldir}" ${CATALOG}
+	adds=(
+		"rewriteSystem"  "http://docbook.sourceforge.net/release/${type}/current"  "${xsldir}"
+		"rewriteURI"     "http://docbook.sourceforge.net/release/${type}/current"  "${xsldir}"
+	)
+	multi_xmlcatalog_add "${CATALOG}" "${adds[@]}"
 }
 
 # Call the main routine

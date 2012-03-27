@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.8 2012/03/27 21:23:00 vapier Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.9 2012/03/27 21:28:18 vapier Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -19,19 +19,36 @@ VERBOSE=false
 ZERO=${0##*/}
 
 #
+# usage!
+#
+usage() {
+	cat <<-EOF
+	Usage: ${ZERO} [options]
+
+	Options:
+	  -v, --verbose    Be verbose
+	  -h, --help       This!
+	EOF
+	[[ $# -gt 0 ]] && eerror "$*"
+	exit 0
+}
+
+#
 # main (called from bottom)
 #
 main() {
 	typeset d v opts
 
-	opts=$(getopt -o v --long verbose -n "$ZERO" -- "$@") || exit 1
+	opts=$(getopt -o hv --long help,verbose -n "$ZERO" -- "$@") || exit 1
 	eval set -- "$opts"
 	while true; do
 		case "$1" in
-			-v|--verbose) VERBOSE=true ; shift ;;
-			--) shift ; break ;;
-			*) error "options parsing failed on $1!" ;;
+			-h|--help) usage ;;
+			-v|--verbose) VERBOSE=true ;;
+			--) break ;;
+			*) usage "options parsing failed on $1!" ;;
 		esac
+		shift
 	done
 
 	create_catalogs			# will exit on error

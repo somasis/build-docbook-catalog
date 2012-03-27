@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.10 2012/03/27 22:39:03 vapier Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.11 2012/03/27 22:41:10 vapier Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -93,8 +93,13 @@ error() {
 # fill in the DTDS variable based on installed versions
 #
 set_dtds() {
-	DTDS=$(find ${DOCBOOKDIR} -path '*/xml-dtd-*/docbookx.dtd')
-	SIMPLE_DTDS=$(find ${DOCBOOKDIR} -path '*/xml-simple-dtd-*/sdocbook.dtd')
+	DTDS= SIMPLE_DTS=
+
+	if [[ -d ${DOCBOOKDIR} ]] ; then
+		DTDS=$(find ${DOCBOOKDIR} -path '*/xml-dtd-*/docbookx.dtd')
+		SIMPLE_DTDS=$(find ${DOCBOOKDIR} -path '*/xml-simple-dtd-*/sdocbook.dtd')
+	fi
+
 	if [[ -z ${DTDS} ]]; then
 		echo "No installed DocBook XML DTDs found"
 		return 1

@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.12 2012/03/27 22:44:46 vapier Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.13 2012/03/27 22:46:32 vapier Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -9,8 +9,9 @@
 # written by Aron Griffis
 #
 
-ROOTCATALOG=/etc/xml/catalog
-CATALOG=/etc/xml/docbook
+ROOTCONFDIR=/etc/xml
+ROOTCATALOG=${ROOTCONFDIR}/catalog
+CATALOG=${ROOTCONFDIR}/docbook
 DOCBOOKDIR=/usr/share/sgml/docbook
 DTDS=
 LATEST_DTD=
@@ -112,6 +113,10 @@ set_dtds() {
 # create the catalogs root and docbook specific
 #
 create_catalogs() {
+	if [[ ! -d ${ROOTCONFDIR} ]] ; then
+		mkdir -p "${ROOTCONFDIR}" || error "could not create ${ROOTCONFDIR}"
+	fi
+
 	if [[ ! -r ${ROOTCATALOG} ]] ; then
 		echo "Creating XML Catalog root ${ROOTCATALOG}"
 		xmlcatalog --noout --create ${ROOTCATALOG}

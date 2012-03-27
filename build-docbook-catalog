@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.9 2012/03/27 21:28:18 vapier Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.10 2012/03/27 22:39:03 vapier Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -37,7 +37,7 @@ usage() {
 # main (called from bottom)
 #
 main() {
-	typeset d v opts
+	local d v opts
 
 	opts=$(getopt -o hv --long help,verbose -n "$ZERO" -- "$@") || exit 1
 	eval set -- "$opts"
@@ -149,7 +149,7 @@ create_catalogs() {
 # $2 == catalog
 #
 clean_catalog() {
-	typeset list f regex=$1 catalog=$2
+	local list f regex=$1 catalog=$2
 
 	list=$(egrep --only-matching "${regex}" "${catalog}" | sort -u)
 	for f in ${list}; do
@@ -162,8 +162,8 @@ clean_catalog() {
 # $1 == /path/to/docbookx.dtd
 #
 populate_dtd() {
-	typeset dtd=$1 docbookdir=${1%/*} dtd_date
-	typeset v=${docbookdir##*-}
+	local dtd=$1 docbookdir=${1%/*} dtd_date
+	local v=${docbookdir##*-}
 
 	# sanity check
 	if [[ ${dtd} != */xml-dtd-*/* ]]; then
@@ -209,8 +209,8 @@ populate_dtd() {
 # $1 == /path/to/sdocbook.dtd
 #
 populate_simple_dtd() {
-	typeset dtd=$1 docbookdir=${1%/*}
-	typeset v=${docbookdir##*-}
+	local dtd=$1 docbookdir=${1%/*}
+	local v=${docbookdir##*-}
 
 	# sanity check
 	if [[ ${dtd} != */xml-simple-dtd-*/* ]]; then
@@ -230,8 +230,8 @@ populate_simple_dtd() {
 # populate ISO DocBook entities from the most recent DTD
 #
 populate_entities() {
-	typeset isodir=${LATEST_DTD%/*}/ent i j
-	typeset -a entities avail
+	local isodir=${LATEST_DTD%/*}/ent i j
+	local entities=() avail=()
 
 	# sanity check
 	if [[ -z ${LATEST_DTD} || ! -d ${isodir} ]]; then
@@ -298,7 +298,7 @@ populate_entities() {
 # populate XSL stylesheets
 #
 populate_xsl() {
-	typeset listed avail f
+	local f
 
 	# This is either xsl, xsl-ns, xsl-saxon or xsl-xalan
 	local type=$1
@@ -307,7 +307,7 @@ populate_xsl() {
 	clean_catalog "${DOCBOOKDIR}/${type}-stylesheets(-[0-9\.]+)?" $CATALOG
 	clean_catalog "${DOCBOOKDIR}/${type}-stylesheets(-[0-9\.]+)?" $ROOTCATALOG
 
-	xsldir=/usr/share/sgml/docbook/${type}-stylesheets
+	local xsldir=/usr/share/sgml/docbook/${type}-stylesheets
 
 	if [[ ! -d ${xsldir} ]]; then
 		echo "DocBook XSL stylesheets (${type}) not found" >&2

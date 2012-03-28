@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.17 2012/03/28 19:02:47 vapier Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.18 2012/03/28 19:27:46 vapier Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -27,6 +27,7 @@ usage() {
 	Usage: ${ZERO} [options]
 
 	Options:
+	  -r, --root       ROOT path to work on
 	  -v, --verbose    Be verbose
 	  -h, --help       This!
 	EOF
@@ -40,17 +41,25 @@ usage() {
 main() {
 	local d v opts
 
-	opts=$(getopt -o hv --long help,verbose -n "${ZERO}" -- "$@") || exit 1
+	opts=$(getopt -o hr:v --long help,root:,verbose -n "${ZERO}" -- "$@") || exit 1
 	eval set -- "${opts}"
 	while true; do
 		case $1 in
 			-h|--help) usage ;;
+			-r|--root) ROOT=$2 ; shift ;;
 			-v|--verbose) VERBOSE=true ;;
 			--) break ;;
 			*) usage "options parsing failed on $1!" ;;
 		esac
 		shift
 	done
+
+	: ${ROOT:=/}
+	[[ ${ROOT} != */ ]] && ROOT="${ROOT}/"
+	[[ ${ROOT} != /* ]] && ROOT="${PWD}${ROOT}"
+	if [[ ${ROOT} != "/" ]] ; then
+		echo "Working on root ${ROOT}"
+	fi
 
 	create_catalogs			# will exit on error
 	for type in xsl xsl-ns xsl-saxon xsl-xalan; do
@@ -96,9 +105,12 @@ error() {
 set_dtds() {
 	DTDS= SIMPLE_DTS=
 
-	if [[ -d ${DOCBOOKDIR} ]] ; then
-		DTDS=$(find "${DOCBOOKDIR}" -path '*/xml-dtd-*/docbookx.dtd')
-		SIMPLE_DTDS=$(find "${DOCBOOKDIR}" -path '*/xml-simple-dtd-*/sdocbook.dtd')
+	local d=${ROOT}${DOCBOOKDIR}
+	if [[ -d ${d} ]] ; then
+		pushd "${d}" >/dev/null || return 1
+		DTDS=$(find xml-dtd-*/ -name docbookx.dtd)
+		SIMPLE_DTDS=$(find xml-simple-dtd-*/ -name sdocbook.dtd)
+		popd >/dev/null
 	fi
 
 	if [[ -z ${DTDS} ]]; then
@@ -115,7 +127,7 @@ set_dtds() {
 # the opts array is a set of three: what gets passed to --add
 #
 multi_xmlcatalog_add() {
-	local file=$1
+	local file="${ROOT}$1"
 	shift
 
 	while [[ $# -gt 0 ]] ; do
@@ -130,14 +142,14 @@ multi_xmlcatalog_add() {
 create_catalogs() {
 	local adds
 
-	if [[ ! -d ${ROOTCONFDIR} ]] ; then
-		mkdir -p "${ROOTCONFDIR}" || error "could not create ${ROOTCONFDIR}"
+	if [[ ! -d ${ROOT}${ROOTCONFDIR} ]] ; then
+		mkdir -p "${ROOT}${ROOTCONFDIR}" || error "could not create ${ROOTCONFDIR}"
 	fi
 
-	if [[ ! -r ${ROOTCATALOG} ]] ; then
+	if [[ ! -r ${ROOT}${ROOTCATALOG} ]] ; then
 		echo "Creating XML Catalog root ${ROOTCATALOG}"
-		xmlcatalog --noout --create "${ROOTCATALOG}"
-		if [[ ! -r ${ROOTCATALOG} ]] ; then
+		xmlcatalog --noout --create "${ROOT}${ROOTCATALOG}"
+		if [[ ! -r ${ROOT}${ROOTCATALOG} ]] ; then
 			error "failed creating ${ROOTCATALOG}"
 		fi
 	else
@@ -147,10 +159,10 @@ create_catalogs() {
 		clean_catalog "file://${CATALOG}" "${ROOTCATALOG}"
 	fi
 
-	if [[ ! -r ${CATALOG} ]] ; then
+	if [[ ! -r ${ROOT}${CATALOG} ]] ; then
 		echo "Creating DocBook XML Catalog ${CATALOG}"
-		xmlcatalog --noout --create "${CATALOG}"
-		if [[ ! -r ${CATALOG} ]] ; then
+		xmlcatalog --noout --create "${ROOT}${CATALOG}"
+		if [[ ! -r ${ROOT}${CATALOG} ]] ; then
 			error "failed creating ${CATALOG}"
 		fi
 	else
@@ -182,7 +194,7 @@ create_catalogs() {
 # $2 == catalog
 #
 clean_catalog() {
-	local list f regex=$1 catalog=$2
+	local list f regex=$1 catalog=${ROOT}$2
 
 	list=$(egrep --only-matching "${regex}" "${catalog}" | sort -u)
 	for f in ${list}; do
@@ -192,11 +204,13 @@ clean_catalog() {
 
 #
 # populate a specific dtd version into the docbook catalog
-# $1 == /path/to/docbookx.dtd
+# $1 == ./subpath/to/docbookx.dtd
 #
 populate_dtd() {
-	local dtd=$1 docbookdir=${1%/*} dtd_date
-	local v=${docbookdir##*-} adds
+	local dtd=${DOCBOOKDIR}/$1
+	local docbookdir=${dtd%/*}
+	local v=${docbookdir##*-}
+	local adds dtd_date
 
 	# sanity check
 	if [[ ${dtd} != */xml-dtd-*/* ]]; then
@@ -222,12 +236,13 @@ populate_dtd() {
 	multi_xmlcatalog_add "${CATALOG}" "${adds[@]}"
 
 	# grab the RCS date from docbookx.dtd for comparison purposes
-	if [[ ! -f ${docbookdir}/ent/iso-lat1.ent ]]; then
+	if [[ ! -f ${ROOT}${docbookdir}/ent/iso-lat1.ent ]]; then
 		verb "  No entities available for ${dtd}"
 		return 0
 	fi
 	dtd_date=$(egrep --only-matching --max-count=1 \
-		'[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}' "${dtd}")
+		'[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}' \
+		"${ROOT}${dtd}")
 	if [[ -z ${dtd_date} ]]; then
 		verb "  Couldn't find RCS date in ${dtd}, ignoring entities"
 		return 0
@@ -242,11 +257,13 @@ populate_dtd() {
 
 #
 # populate a specific simple dtd version into the docbook catalog
-# $1 == /path/to/sdocbook.dtd
+# $1 == ./subpath/to/sdocbook.dtd
 #
 populate_simple_dtd() {
-	local dtd=$1 docbookdir=${1%/*}
-	local v=${docbookdir##*-} adds
+	local dtd=${DOCBOOKDIR}/$1
+	local docbookdir=${dtd%/*}
+	local v=${docbookdir##*-}
+	local adds dtd_date
 
 	# sanity check
 	if [[ ${dtd} != */xml-simple-dtd-*/* ]]; then
@@ -273,7 +290,7 @@ populate_entities() {
 	local entities=() avail=()
 
 	# sanity check
-	if [[ -z ${LATEST_DTD} || ! -d ${isodir} ]]; then
+	if [[ -z ${LATEST_DTD} || ! -d ${ROOT}${isodir} ]]; then
 		echo "No ISO DocBook entities available for catalog"
 		return 0
 	fi
@@ -304,7 +321,7 @@ populate_entities() {
 	)
 
 	# here are the entities available; assume no spaces in filenames...
-	avail=($(ls "${isodir}" | sort))
+	avail=($(ls "${ROOT}${isodir}" | sort))
 
 	# double-check the lists
 	verb "  Populating ${CATALOG} with ISO DocBook entities"
@@ -324,7 +341,7 @@ populate_entities() {
 			let i=i+2
 		elif [[ ${entities[i]} == ${avail[j]} ]]; then
 			xmlcatalog --noout --add "public" "${entities[i+1]}" \
-				"file://${isodir}/${entities[i]}" "${CATALOG}"
+				"file://${isodir}/${entities[i]}" "${ROOT}${CATALOG}"
 			let j=j+1
 			let i=i+2
 		else
@@ -348,12 +365,12 @@ populate_xsl() {
 
 	local xsldir=${DOCBOOKDIR}/${type}-stylesheets
 
-	if [[ ! -d ${xsldir} ]]; then
+	if [[ ! -d ${ROOT}${xsldir} ]] ; then
 		echo "DocBook XSL stylesheets (${type}) not found" >&2
 		return 1
 	fi
 
-	if [[ ! -e ${xsldir}/html/docbook.xsl || ! -e ${xsldir}/common/l10n.xml ]]; then
+	if [[ ! -e ${ROOT}${xsldir}/html/docbook.xsl || ! -e ${ROOT}${xsldir}/common/l10n.xml ]] ; then
 		echo "DocBook XSL stylesheets are missing files from ${xsldir}" >&2
 		return 1
 	fi

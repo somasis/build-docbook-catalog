@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.18 2012/03/28 19:27:46 vapier Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.19 2012/03/28 19:34:46 vapier Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -61,6 +61,15 @@ main() {
 		echo "Working on root ${ROOT}"
 	fi
 
+	if [[ ! -d ${ROOT}${ROOTCONFDIR} ]] ; then
+		mkdir -p "${ROOT}${ROOTCONFDIR}" || error "could not create ${ROOTCONFDIR}"
+	fi
+
+	(
+	# Lock the dir to avoid trashing other runs that might
+	# be running parallel.
+	flock 123 || error "unable to lock ${ROOTCONFDIR}"
+
 	create_catalogs			# will exit on error
 	for type in xsl xsl-ns xsl-saxon xsl-xalan; do
 		populate_xsl ${type}
@@ -80,6 +89,8 @@ main() {
 		done
 		populate_entities
 	fi
+
+	) 123>"${ROOT}${ROOTCONFDIR}/.keep"
 
 	exit 0
 }
@@ -141,10 +152,6 @@ multi_xmlcatalog_add() {
 #
 create_catalogs() {
 	local adds
-
-	if [[ ! -d ${ROOT}${ROOTCONFDIR} ]] ; then
-		mkdir -p "${ROOT}${ROOTCONFDIR}" || error "could not create ${ROOTCONFDIR}"
-	fi
 
 	if [[ ! -r ${ROOT}${ROOTCATALOG} ]] ; then
 		echo "Creating XML Catalog root ${ROOTCATALOG}"

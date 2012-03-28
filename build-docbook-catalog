@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.15 2012/03/27 22:54:41 vapier Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.16 2012/03/28 18:46:29 vapier Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -40,10 +40,10 @@ usage() {
 main() {
 	local d v opts
 
-	opts=$(getopt -o hv --long help,verbose -n "$ZERO" -- "$@") || exit 1
-	eval set -- "$opts"
+	opts=$(getopt -o hv --long help,verbose -n "${ZERO}" -- "$@") || exit 1
+	eval set -- "${opts}"
 	while true; do
-		case "$1" in
+		case $1 in
 			-h|--help) usage ;;
 			-v|--verbose) VERBOSE=true ;;
 			--) break ;;
@@ -54,7 +54,7 @@ main() {
 
 	create_catalogs			# will exit on error
 	for type in xsl xsl-ns xsl-saxon xsl-xalan; do
-	    populate_xsl $type
+		populate_xsl ${type}
 	done
 
 	# Clean out old dtds from catalog
@@ -79,7 +79,7 @@ main() {
 # verbose echo -- only echo if called with --verbose
 #
 verb() {
-	$VERBOSE && echo "$*"
+	${VERBOSE} && echo "$*"
 }
 
 #
@@ -233,8 +233,8 @@ populate_dtd() {
 		return 0
 	fi
 	verb "  RCS datestamp in ${dtd} is ${dtd_date}"
-	dtd_date=$(date -d "$dtd_date" +%s)
-	if [[ -z $LATEST_DTD || $dtd_date -gt $LATEST_DATE ]]; then
+	dtd_date=$(date -d "${dtd_date}" +%s)
+	if [[ ${dtd_date} -gt ${LATEST_DATE:-0} ]] ; then
 		LATEST_DATE=${dtd_date}
 		LATEST_DTD=${dtd}
 	fi

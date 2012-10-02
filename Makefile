@@ -10,15 +10,14 @@ PREFIX = /usr
 SBINDIR = $(PREFIX)/sbin
 
 install:
-	mkdir -p $(DESTDIR)$(CONFDIR) $(DESTDIR)$(SBINDIR)
-	touch $(DESTDIR)$(CONFDIR)/.keep
+	install -d $(DESTDIR)$(SBINDIR)
 	install -m 755 build-docbook-catalog $(DESTDIR)$(SBINDIR)
 
 dist:
 	rm -rf $(P)
 	mkdir -p $(P)
 	cp -pPR build-docbook-catalog Makefile README $(P)/
-	tar cf - $(P) | xz -9 > $(P).tar.xz
+	tar --posix --owner 0 --group 0 -cf - $(P) | xz -9 > $(P).tar.xz
 	rm -rf $(P)
 
 .PHONY: all clean dist install

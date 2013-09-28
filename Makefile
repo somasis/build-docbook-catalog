@@ -4,9 +4,10 @@ P = $(PN)-$(PV)
 
 all:
 
-SYSCONFDIR = /etc
+EPREFIX =
+SYSCONFDIR = $(EPREFIX)/etc
 CONFDIR = $(SYSCONFDIR)/xml
-PREFIX = /usr
+PREFIX = $(EPREFIX)/usr
 SBINDIR = $(PREFIX)/sbin
 
 install:

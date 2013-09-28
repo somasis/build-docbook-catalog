@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.19 2012/03/28 19:34:46 vapier Exp $
+# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.20 2013/09/28 02:30:06 ottxor Exp $
 #
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
@@ -9,15 +9,17 @@
 # written by Aron Griffis
 #
 
-ROOTCONFDIR=/etc/xml
+EPREFIX=
+ROOTCONFDIR="${EPREFIX}"/etc/xml
 ROOTCATALOG=${ROOTCONFDIR}/catalog
 CATALOG=${ROOTCONFDIR}/docbook
-DOCBOOKDIR=/usr/share/sgml/docbook
+DOCBOOKDIR="${EPREFIX}"/usr/share/sgml/docbook
 DTDS=
 LATEST_DTD=
 LATEST_DATE=
 VERBOSE=false
 ZERO=${0##*/}
+GETOPT=getopt
 
 #
 # usage!
@@ -41,7 +43,7 @@ usage() {
 main() {
 	local d v opts
 
-	opts=$(getopt -o hr:v --long help,root:,verbose -n "${ZERO}" -- "$@") || exit 1
+	opts=$(${GETOPT} -o hr:v --long help,root:,verbose -n "${ZERO}" -- "$@") || exit 1
 	eval set -- "${opts}"
 	while true; do
 		case $1 in
@@ -65,10 +67,14 @@ main() {
 		mkdir -p "${ROOT}${ROOTCONFDIR}" || error "could not create ${ROOTCONFDIR}"
 	fi
 
+	local lock="${ROOT}${ROOTCONFDIR}"/build-docbook-catalog-lock
 	(
 	# Lock the dir to avoid trashing other runs that might
 	# be running parallel.
-	flock 123 || error "unable to lock ${ROOTCONFDIR}"
+	touch "${lock}".$$ && \
+		until ln "${lock}".$$ "${lock}" 2>/dev/null; do sleep 1; done && \
+		rm "${lock}".$$
+	[[ -f ${lock}.$$ ]] && error "unable to lock ${ROOTCONFDIR}"
 
 	create_catalogs			# will exit on error
 	for type in xsl xsl-ns xsl-saxon xsl-xalan; do
@@ -90,7 +96,8 @@ main() {
 		populate_entities
 	fi
 
-	) 123>"${ROOT}${ROOTCONFDIR}/.keep"
+	)
+	rm "${lock}"
 
 	exit 0
 }

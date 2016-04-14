@@ -1,24 +1,28 @@
-PN = build-docbook-catalog
-PV = $(shell awk '/^\# .Header:/{print $$4;exit}' build-docbook-catalog)
-P = $(PN)-$(PV)
+NAME    = build-docbook-catalog
+VERSION = 1.20
 
-all:
+prefix      ?= /usr/local
+exec_prefix ?= $(prefix)
+sysconfdir  ?= $(prefix)/etc
+sbindir     ?= $(exec_prefix)/sbin
 
-EPREFIX =
-SYSCONFDIR = $(EPREFIX)/etc
-CONFDIR = $(SYSCONFDIR)/xml
-PREFIX = $(EPREFIX)/usr
-SBINDIR = $(PREFIX)/sbin
+$(NAME):
+	sed -e "s/@@VERSION@@/$(VERSION)/g" $(NAME).in > $(NAME)
 
-install:
-	install -d $(DESTDIR)$(SBINDIR)
-	install -m 755 build-docbook-catalog $(DESTDIR)$(SBINDIR)
+install: $(NAME)
+	install -d $(DESTDIR)$(sbindir)
+	install -m 755 $(NAME) $(DESTDIR)$(sbindir)
 
-dist:
+dist: $(NAME)
 	rm -rf $(P)
 	mkdir -p $(P)
-	cp -pPR build-docbook-catalog Makefile README $(P)/
+	cp -pPR $(NAME) Makefile README $(P)/
 	tar --posix --owner 0 --group 0 -cf - $(P) | xz -9 > $(P).tar.xz
 	rm -rf $(P)
+
+clean:
+	-rm -f $(NAME)
+
+all: $(NAME)
 
 .PHONY: all clean dist install

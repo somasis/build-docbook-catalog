@@ -1,6 +1,4 @@
 #!/bin/bash
-# $Header: /var/cvsroot/gentoo-src/build-docbook-catalog,v 1.20 2013/09/28 02:30:06 ottxor Exp $
-#
 # build-docbook-catalog: populate /etc/xml/docbook based in
 # installed docbook-xml-dtd versions.
 #
@@ -9,24 +7,23 @@
 # written by Aron Griffis
 #
 
-EPREFIX=
-ROOTCONFDIR="${EPREFIX}"/etc/xml
-ROOTCATALOG=${ROOTCONFDIR}/catalog
-CATALOG=${ROOTCONFDIR}/docbook
-DOCBOOKDIR="${EPREFIX}"/usr/share/sgml/docbook
+ROOT="${ROOT:-${EPREFIX}}"
+ROOTCONFDIR="${ROOT}"/etc/xml
+ROOTCATALOG="${ROOTCONFDIR}"/catalog
+CATALOG="${ROOTCONFDIR}"/docbook
+DOCBOOKDIR="${ROOT}"/usr/share/sgml/docbook
 DTDS=
 LATEST_DTD=
 LATEST_DATE=
 VERBOSE=false
-ZERO=${0##*/}
-GETOPT=getopt
+ME=${0##*/}
 
 #
 # usage!
 #
 usage() {
 	cat <<-EOF
-	Usage: ${ZERO} [options]
+	Usage: ${ME} [options]
 
 	Options:
 	  -r, --root       ROOT path to work on
@@ -43,12 +40,12 @@ usage() {
 main() {
 	local d v opts
 
-	opts=$(${GETOPT} -o hr:v --long help,root:,verbose -n "${ZERO}" -- "$@") || exit 1
+	opts=$(getopt -o hr:v --long help,root:,verbose -n "${ME}" -- "$@") || exit 1
 	eval set -- "${opts}"
 	while true; do
-		case $1 in
+		case "$1" in
 			-h|--help) usage ;;
-			-r|--root) ROOT=$2 ; shift ;;
+			-r|--root) ROOT="$2" ; shift ;;
 			-v|--verbose) VERBOSE=true ;;
 			--) break ;;
 			*) usage "options parsing failed on $1!" ;;
@@ -113,7 +110,7 @@ verb() {
 # show an error and abort
 #
 error() {
-	printf '%s: %b, aborting\n' "${ZERO}" "$*" 1>&2
+	printf '%s: %b, aborting\n' "${ME}" "$*" 1>&2
 	exit 1
 }
 

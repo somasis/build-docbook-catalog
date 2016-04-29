@@ -1,5 +1,5 @@
 NAME    = build-docbook-catalog
-VERSION = 1.20
+VERSION = 1.21
 
 prefix      ?= /usr/local
 exec_prefix ?= $(prefix)

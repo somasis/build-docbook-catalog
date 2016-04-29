@@ -31,7 +31,7 @@ usage() {
 	  -V, --version    Show version
 	  -h, --help       Display this help message
 	EOF
-	[[ $# -gt 0 ]] && eerror "$*"
+	[[ $# -gt 0 ]] && error "$*"
 	exit 0
 }
 

@@ -28,10 +28,16 @@ usage() {
 	Options:
 	  -r, --root       ROOT path to work on
 	  -v, --verbose    Be verbose
-	  -h, --help       This!
+	  -V, --version    Show version
+	  -h, --help       Display this help message
 	EOF
 	[[ $# -gt 0 ]] && eerror "$*"
 	exit 0
+}
+
+version() {
+    echo "${ME} @@VERSION@@"
+    exit 0
 }
 
 #
@@ -40,11 +46,12 @@ usage() {
 main() {
 	local d v opts
 
-	opts=$(getopt -o hr:v --long help,root:,verbose -n "${ME}" -- "$@") || exit 1
+	opts=$(getopt -o hVr:v --long help,version,root:,verbose -n "${ME}" -- "$@") || exit 1
 	eval set -- "${opts}"
 	while true; do
 		case "$1" in
 			-h|--help) usage ;;
+			-V|--version) version ;;
 			-r|--root) ROOT="$2" ; shift ;;
 			-v|--verbose) VERBOSE=true ;;
 			--) break ;;

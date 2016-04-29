@@ -6,7 +6,7 @@ exec_prefix ?= $(prefix)
 sysconfdir  ?= $(prefix)/etc
 bindir      ?= $(exec_prefix)/bin
 
-$(NAME):
+$(NAME): $(NAME).in
 	sed -e "s/@@VERSION@@/$(VERSION)/g" $(NAME).in > $(NAME)
 
 install: $(NAME)

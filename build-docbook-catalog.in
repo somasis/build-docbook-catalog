@@ -7,11 +7,11 @@
 # written by Aron Griffis
 #
 
-ROOT="${ROOT:-${EPREFIX}}"
-ROOTCONFDIR="${ROOT}"/etc/xml
+EROOT="${EROOT:-${EPREFIX}}"
+ROOTCONFDIR="${EROOT}"/etc/xml
 ROOTCATALOG="${ROOTCONFDIR}"/catalog
 CATALOG="${ROOTCONFDIR}"/docbook
-DOCBOOKDIR="${ROOT}"/usr/share/sgml/docbook
+DOCBOOKDIR="${EROOT}"/usr/share/sgml/docbook
 DTDS=
 LATEST_DTD=
 LATEST_DATE=
@@ -52,7 +52,7 @@ main() {
 		case "$1" in
 			-h|--help) usage ;;
 			-V|--version) version ;;
-			-r|--root) ROOT="$2" ; shift ;;
+			-r|--root) EROOT="$2" ; shift ;;
 			-v|--verbose) VERBOSE=true ;;
 			--) break ;;
 			*) usage "options parsing failed on $1!" ;;
@@ -60,18 +60,18 @@ main() {
 		shift
 	done
 
-	: ${ROOT:=/}
-	[[ ${ROOT} != */ ]] && ROOT="${ROOT}/"
-	[[ ${ROOT} != /* ]] && ROOT="${PWD}${ROOT}"
-	if [[ ${ROOT} != "/" ]] ; then
-		echo "Working on root ${ROOT}"
+	: ${EROOT:=/}
+	[[ ${EROOT} != */ ]] && EROOT="${EROOT}/"
+	[[ ${EROOT} != /* ]] && EROOT="${PWD}${EROOT}"
+	if [[ ${EROOT} != "/" ]] ; then
+		echo "Working on root ${EROOT}"
 	fi
 
-	if [[ ! -d ${ROOT}${ROOTCONFDIR} ]] ; then
-		mkdir -p "${ROOT}${ROOTCONFDIR}" || error "could not create ${ROOTCONFDIR}"
+	if [[ ! -d ${EROOT}${ROOTCONFDIR} ]] ; then
+		mkdir -p "${EROOT}${ROOTCONFDIR}" || error "could not create ${ROOTCONFDIR}"
 	fi
 
-	local lock="${ROOT}${ROOTCONFDIR}"/build-docbook-catalog-lock
+	local lock="${EROOT}${ROOTCONFDIR}"/build-docbook-catalog-lock
 	(
 	# Lock the dir to avoid trashing other runs that might
 	# be running parallel.
@@ -127,7 +127,7 @@ error() {
 set_dtds() {
 	DTDS= SIMPLE_DTS=
 
-	local d=${ROOT}${DOCBOOKDIR}
+	local d=${EROOT}${DOCBOOKDIR}
 	if [[ -d ${d} ]] ; then
 		pushd "${d}" >/dev/null || return 1
 		DTDS=$(find xml-dtd-*/ -name docbookx.dtd)
@@ -149,7 +149,7 @@ set_dtds() {
 # the opts array is a set of three: what gets passed to --add
 #
 multi_xmlcatalog_add() {
-	local file="${ROOT}$1"
+	local file="${EROOT}$1"
 	shift
 
 	while [[ $# -gt 0 ]] ; do
@@ -164,10 +164,10 @@ multi_xmlcatalog_add() {
 create_catalogs() {
 	local adds
 
-	if [[ ! -r ${ROOT}${ROOTCATALOG} ]] ; then
+	if [[ ! -r ${EROOT}${ROOTCATALOG} ]] ; then
 		echo "Creating XML Catalog root ${ROOTCATALOG}"
-		xmlcatalog --noout --create "${ROOT}${ROOTCATALOG}"
-		if [[ ! -r ${ROOT}${ROOTCATALOG} ]] ; then
+		xmlcatalog --noout --create "${EROOT}${ROOTCATALOG}"
+		if [[ ! -r ${EROOT}${ROOTCATALOG} ]] ; then
 			error "failed creating ${ROOTCATALOG}"
 		fi
 	else
@@ -177,10 +177,10 @@ create_catalogs() {
 		clean_catalog "file://${CATALOG}" "${ROOTCATALOG}"
 	fi
 
-	if [[ ! -r ${ROOT}${CATALOG} ]] ; then
+	if [[ ! -r ${EROOT}${CATALOG} ]] ; then
 		echo "Creating DocBook XML Catalog ${CATALOG}"
-		xmlcatalog --noout --create "${ROOT}${CATALOG}"
-		if [[ ! -r ${ROOT}${CATALOG} ]] ; then
+		xmlcatalog --noout --create "${EROOT}${CATALOG}"
+		if [[ ! -r ${EROOT}${CATALOG} ]] ; then
 			error "failed creating ${CATALOG}"
 		fi
 	else
@@ -212,7 +212,7 @@ create_catalogs() {
 # $2 == catalog
 #
 clean_catalog() {
-	local list f regex=$1 catalog=${ROOT}$2
+	local list f regex=$1 catalog=${EROOT}$2
 
 	list=$(egrep -o "${regex}" "${catalog}" | sort -u)
 	for f in ${list}; do
@@ -254,13 +254,13 @@ populate_dtd() {
 	multi_xmlcatalog_add "${CATALOG}" "${adds[@]}"
 
 	# grab the RCS date from docbookx.dtd for comparison purposes
-	if [[ ! -f ${ROOT}${docbookdir}/ent/iso-lat1.ent ]]; then
+	if [[ ! -f ${EROOT}${docbookdir}/ent/iso-lat1.ent ]]; then
 		verb "  No entities available for ${dtd}"
 		return 0
 	fi
 	dtd_date=$(egrep -o -m 1 \
 		'[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}' \
-		"${ROOT}${dtd}")
+		"${EROOT}${dtd}")
 	if [[ -z ${dtd_date} ]]; then
 		verb "  Couldn't find RCS date in ${dtd}, ignoring entities"
 		return 0
@@ -308,7 +308,7 @@ populate_entities() {
 	local entities=() avail=()
 
 	# sanity check
-	if [[ -z ${LATEST_DTD} || ! -d ${ROOT}${isodir} ]]; then
+	if [[ -z ${LATEST_DTD} || ! -d ${EROOT}${isodir} ]]; then
 		echo "No ISO DocBook entities available for catalog"
 		return 0
 	fi
@@ -339,7 +339,7 @@ populate_entities() {
 	)
 
 	# here are the entities available; assume no spaces in filenames...
-	avail=($(ls "${ROOT}${isodir}" | sort))
+	avail=($(ls "${EROOT}${isodir}" | sort))
 
 	# double-check the lists
 	verb "  Populating ${CATALOG} with ISO DocBook entities"
@@ -359,7 +359,7 @@ populate_entities() {
 			let i=i+2
 		elif [[ ${entities[i]} == ${avail[j]} ]]; then
 			xmlcatalog --noout --add "public" "${entities[i+1]}" \
-				"file://${isodir}/${entities[i]}" "${ROOT}${CATALOG}"
+				"file://${isodir}/${entities[i]}" "${EROOT}${CATALOG}"
 			let j=j+1
 			let i=i+2
 		else
@@ -383,12 +383,12 @@ populate_xsl() {
 
 	local xsldir=${DOCBOOKDIR}/${type}-stylesheets
 
-	if [[ ! -d ${ROOT}${xsldir} ]] ; then
+	if [[ ! -d ${EROOT}${xsldir} ]] ; then
 		echo "DocBook XSL stylesheets (${type}) not found" >&2
 		return 1
 	fi
 
-	if [[ ! -e ${ROOT}${xsldir}/html/docbook.xsl || ! -e ${ROOT}${xsldir}/common/l10n.xml ]] ; then
+	if [[ ! -e ${EROOT}${xsldir}/html/docbook.xsl || ! -e ${EROOT}${xsldir}/common/l10n.xml ]] ; then
 		echo "DocBook XSL stylesheets are missing files from ${xsldir}" >&2
 		return 1
 	fi
